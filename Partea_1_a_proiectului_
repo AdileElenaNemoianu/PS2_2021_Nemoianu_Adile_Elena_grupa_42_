@@ -227,3 +227,55 @@ void Transmitere_Temperatura()
 // -40 -> Vout= 10C * 10mV/C = 100mV;
 // -30 - 200
 // 35C / 850mV   nr_q = 850mV/q = 173  
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+from flask import Flask
+import serial
+app = Flask(__name__)
+
+ser = serial.Serial('COM7')
+print(ser.name) 
+
+@app.route('/')
+def hello_world():
+    text = 'Proiect Sincretic 2021'
+    temp = '- Temperatura este '
+    temp_serial = ser.readline()
+
+    string_butoane = '<p><button onclick="document.location=\'led_off\'">LED OFF</button> <button onclick="document.location=\'led_on\'">LED ON</button></p>'
+
+    return text + temp + temp_serial.decode() + string_butoane
+    
+@app.route('/led_on')
+def led_on():
+    ser.write("A".encode())
+    return "Am aprins ledul"
+
+@app.route('/led_off')
+def led_off():
+    ser.write("S".encode())
+    return "Am stins ledul"
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+print("Hello World")
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+<html>
+<body>
+	<p> Temperatura este 25 grade Celsius </p>
+<button onclick="document.location='led_on'">LED OFF</button>
+<button onclick="document.location='led_off'">LED ON</button>
+
+</body>
+</html>
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
