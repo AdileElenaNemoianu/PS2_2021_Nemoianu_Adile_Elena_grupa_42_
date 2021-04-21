@@ -4,7 +4,6 @@
 #define MYUBRR FOSC/16/BAUD-1
 
 #define MSG_MAX_LEN 32
-#define MSG_MAX_ROW_NUM 2
 
 #include <avr/io.h>
 #include <LiquidCrystal.h>
@@ -18,10 +17,14 @@ int pwm_val[3][2];
 bool pwm_parsing = false;
 int pwm_pos = 0;
 
-char msg_val[MSG_MAX_ROW_NUM][MSG_MAX_LEN/MSG_MAX_ROW_NUM + 1]; 
+char msg_val[MSG_MAX_LEN + 1]; 
 bool msg_parsing = false;
 int msg_pos = 0;
 volatile bool msg_rec_completed = false;
+volatile bool refresh_needed = false;
+
+static char row_up[17] = "PS 2";
+static char row_down[17] = "Semestrul II";
 
 void setup()
 {
@@ -51,15 +54,22 @@ int main()
  {
   if (true == msg_rec_completed)
   {
-       lcd.begin(16, 2);
-       lcd.clear();
-       lcd.print(msg_val[0]);
-       lcd.setCursor(0, 1);
-       lcd.print(msg_val[1]);
-     
-       msg_rec_completed = false;
-       memset(msg_val, 0, sizeof(msg_val));
+      
+      memset(row_up, 0, sizeof(row_up));
+      memset(row_down, 0, sizeof(row_down));
+      memcpy(row_up, &msg_val[0], 16);
+      memcpy(row_down, &msg_val[16], 16);
+      
+      msg_rec_completed = false;
+      memset(msg_val, 0, sizeof(msg_val));
+      
+      Debug_Display_Rows();
   }
+  if (true == refresh_needed)
+  {
+    Refresh_Display();
+  }
+  
  }
 }
 
@@ -68,7 +78,7 @@ void Disp_Init(void)
    // set up the LCD's number of columns and rows:
   lcd.begin(16, 2);
   // Print a message to the LCD.
-  lcd.print("sincretic 2021");
+  lcd.print("Sincretic 2021");
 }
 
 void Disp_Char(char c)
@@ -145,21 +155,21 @@ ISR(ADC_vect)
 ISR(USART_RX_vect)
 {
    char c = USART_Receive();
-   if(c == 'A')
+   if ((c == 'A') && !msg_parsing)
    {
      PORTB |= 1 << PB5;
    }
-   else if (c == 'S')
+   else if ((c == 'S') && !msg_parsing)
    {
      PORTB &= ~(1 << PB5);
    } 
-   else if (c == 'P')
+   else if ((c == 'P') && !msg_parsing)
    {
      // incepem parsare PWM
      pwm_parsing = true;
      pwm_pos = 0;
    }
-   else if (c == 'W')
+   else if ((c == 'W') && !msg_parsing)
    {
       // incheiem parsarea PWM
       pwm_parsing = false;
@@ -178,6 +188,7 @@ ISR(USART_RX_vect)
        msg_parsing = false;
        msg_rec_completed = true;
    }
+   
    else
    {
     if (pwm_parsing == true)
@@ -188,13 +199,9 @@ ISR(USART_RX_vect)
     }
     if (msg_parsing == true)
     {
-      if ('\n' == c)
+      if (('\n' != c) && (msg_pos < MSG_MAX_LEN))
       {
-      }
-      else if (msg_pos < MSG_MAX_LEN*MSG_MAX_ROW_NUM)
-      {
-        msg_val[msg_pos / MSG_MAX_LEN][msg_pos % MSG_MAX_LEN] = c;
-        msg_pos++;   
+        msg_val[msg_pos++] = c;   
       }
     }
   }
@@ -203,6 +210,11 @@ ISR(USART_RX_vect)
 ISR(TIMER2_COMPA_vect)
 {
   time_count++;
+  if (!(time_count % 100))
+  {
+     refresh_needed = true;
+  }
+  
   if (!(time_count % 50))
   {
     Transmitere_Temperatura();
@@ -256,9 +268,32 @@ void Transmitere_Temperatura()
   }
 }
 
-// Modul 3
-//  q  = 5000mV/1023 ~5mV
-// -50 ... 200 Vout 10mV/*C
-// -40 -> Vout= 10C * 10mV/C = 100mV;
-// -30 - 200
-// 35C / 850mV   nr_q = 850mV/q = 173  
+void Debug_Display_Rows()
+{
+  for (int i=0; i < 16; i++)
+  {
+    USART_Transmit(row_up[i]);
+  }
+  USART_Transmit('\n');
+  
+  for (int i=0; i < 16; i++)
+  {
+    USART_Transmit(row_down[i]);
+  }
+  
+  USART_Transmit('\n');
+  USART_Transmit('\n');
+}
+
+void Refresh_Display()
+{
+  cli();
+  lcd.begin(16,2);
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(row_up);
+  lcd.setCursor(0, 1);
+  lcd.print(row_down);
+  refresh_needed = false;
+  sei();
+}
