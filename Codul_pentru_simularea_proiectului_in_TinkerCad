@@ -1,0 +1,326 @@
+#include <LiquidCrystal.h>
+#include <Adafruit_NeoPixel.h> 
+#include <Wire.h>
+#define COLUMNAS 16
+#define FILAS 2
+#define PIN 13
+#define PIN 12
+#define NUMPIXELS 6
+const int EchoPin = 9;
+const int sensorTemp =0;
+#define Alarma 10
+const int TriggerPin  = 10;
+int melodia[]={4000,1000,4000,1000};
+int duracion[] ={200,100,200,200};
+const int alarma = 8;
+
+
+//#include<SPI.h>
+//#include<Ethernet.h>
+//byte mac[]={0xDE, 0XAD, 0XBE, 0xEF, 0xFE, 0xED};
+//IPAdress ip(192,168,1,177);
+//EthernetServer(80);
+
+
+long color1;
+long color2;
+long color3;
+
+
+LiquidCrystal LCD(7,6, 5, 4, 3, 2);
+String Linea1 = "Temp. C";
+String Linea2 = "Dist. Cm.:";
+Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
+
+
+byte Grado[8] = {0b00001100,0b00010010,0b00010010,0b00001100,0b00000000,0b00000000,0b00000000,0b00000000};
+byte Exclamacion[8] = {0b00000001,0b00000000,0b00000001,0b00000001,0b00000001,0b00000001,0b00000001,0b00000001};
+
+void setup()
+{
+
+
+
+  Serial.begin(9600);
+  LCD.begin(COLUMNAS,FILAS);
+  pixels.begin();
+  pinMode(TriggerPin,OUTPUT);
+  pinMode(EchoPin,INPUT);
+  pinMode(Alarma,OUTPUT);
+  randomSeed(850);
+  LCD.createChar(7,Grado);
+  LCD.createChar(8,Exclamacion);
+  
+ 
+  pinMode(A1, INPUT);
+  pinMode(A2, INPUT);
+  
+ 
+  
+  //Ethernet.begin(mac,ip);
+  //server.begin();
+  //Serial.print("Adresa IP a server-ului este:");
+  
+ 
+}
+
+//---------------------------------------
+
+void loop(){
+  
+  int stareButon1=digitalRead(A1);
+  Serial.println(stareButon1);
+  
+  
+  int stareButon2=digitalRead(A2);
+  Serial.println(stareButon2);
+  
+  int stareButon3=digitalRead(A3);
+  Serial.println(stareButon3);
+  
+  float cm = ping(TriggerPin,EchoPin);
+  float temperatura=analogRead(sensorTemp);
+  temperatura= (temperatura * 500.0)/1024.0;
+  temperatura = temperatura -49.71;
+ 
+  
+  LCD.setCursor(0,0);
+  LCD.print(Linea1);
+  LCD.write(7);
+  LCD.print(":");
+  LCD.print(temperatura);
+  LCD.setCursor(0,1);
+  LCD.print(Linea2);
+  LCD.print(cm,2);
+  
+
+
+  if (stareButon1=digitalRead(A1)){
+     EnciendeLucesRojoPixels();
+ 	 ApagaLucesPixel();
+     LCD.clear();
+     LCD.print("Senzor Temp");
+     LCD.print(temperatura);
+     Serial.print("Temperatura citita recent este:");
+     Serial.print(temperatura);
+     delay(1000);
+  
+     
+  }
+  
+  
+  if (stareButon2=digitalRead(A2)){
+    
+    EnciendeLucesRojoPixels();
+ 	 ApagaLucesPixel();
+     LCD.clear();
+     LCD.print("Senzor inund");
+     LCD.print(cm);
+     Serial.print("Distanta la care s-a detectat inundatia este");
+     Serial.print(cm);
+     delay(1000);
+  }
+  
+  
+  if (stareButon3=digitalRead(A3)){
+    EnciendeLucesRojoPixels();
+ 	 ApagaLucesPixel();
+     LCD.clear();
+     LCD.print("Mesaje");
+     Serial.print("Temperatura citita recent este:");
+     delay(1000);
+     Serial.print(temperatura);
+     Serial.print("Distanta la care s-a detectat inundatia este");
+     Serial.print(cm);
+     delay(1000);
+  
+  
+  
+  
+  }
+  
+   if(temperatura>=38.0){ 
+     
+     for (int i= 0; i < 4; i++){
+    
+ 	 EnciendeLucesRojoPixels();
+ 	 ApagaLucesPixel();
+     LCD.clear();
+     LCD.write(8);
+     LCD.print("Temperatura ridicata!");
+       
+     Serial.print("Temperatura este:");
+     Serial.print(temperatura);
+         
+     delay(1000);
+     tone(alarma, melodia[i]);//frecuencia de la nota
+     delay(duracion[i]);//duracion de la nota
+     noTone(alarma); //final de la cancion
+       
+     }
+     delay(200); 
+   }
+    
+ 
+     
+  else if (cm>=250)
+  {
+    for (int i= 0; i < 4; i++){
+       
+      EnciendeLucesRojoPixels();
+ 	  ApagaLucesPixel();
+      LCD.clear();
+      LCD.write(8);
+      LCD.print("Inundatie apropiata!");
+           Serial.print("Distanta inundatie:");
+           Serial.print(cm);
+           delay(1000);
+      
+    	tone(alarma, melodia[i]);//frecuencia de la nota
+      	delay(duracion[i]);//duracion de la nota
+      	noTone(alarma); //final de la cancion
+    }
+   
+  delay(200); 
+    
+    
+   }  
+  
+ if(temperatura<38.0 && cm>=250)
+  {
+    
+    EnciendeLucesAmarilloPixels();
+    ApagaLucesPixel();
+    
+  }
+
+  if(temperatura<38.0 && cm>=250)
+  {
+   EnciendeLucesVerdePixels();
+ 	 ApagaLucesPixel();
+  }
+
+  
+//....................................
+  
+//  EthernetClient=server.avaibile();
+//  if(client)
+//  {
+//  Serial.println("conectare client nou");
+//    boolean currentLineIsBlank=true;
+//    while(client.connecred())
+//    {
+//    if(client.avaible())
+//    {
+//    char c=client.read();
+//      Serial.write(c);
+//      if(c == '\n' && currentLineIsBlank)
+//      {
+//      client.println("HTTP/1.1 200 OK");
+//      client.println("Conetnt-Type: text/html");
+//      client.println("Connection: close");
+//      client.println();
+//     client.println("<!DOCTYPE HTML>");
+//      client.println("<html>");
+//      client.println("<meta http-equiv=\"refresh\" content=\"5\">");
+//      for(int analogChannel =0; analogChannel < 6; analogChannel++)
+//      {
+//      int sensorReading=analogRead(analogChannel);
+//      client.print("* pe portul analogic");
+//      client.print(analogChannel);
+//      client.print(" s-a citit valoarea");
+//      client.println("<br />");
+//        
+//      }
+//        client.println("</html>");
+//        break;
+//      }
+//      if(c=='\n')
+//      {
+//      currentLineIsBlank=true;
+//      }
+//      else if(c!='\r')
+//      {
+//      currentLineIsBlank=false;
+//      }
+//    }
+//    }
+//    
+//    delay(10);
+//    client.stop();
+//    Serial.println("Clientul a incheiat sesiunea");
+//  }
+}
+
+//----------------------------
+
+float ping(int TriggerPin, int EchoPin){
+  
+  long duration;
+  float distanceCm;
+  digitalWrite(TriggerPin, LOW);
+  delayMicroseconds(4);
+  digitalWrite(TriggerPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TriggerPin, LOW);
+  duration = pulseIn(EchoPin, HIGH);
+  
+  distanceCm = duration * 10/292 /2;
+  return distanceCm;
+
+}
+
+
+void EnciendeLucesVerdePixels(){
+   
+  for(int i=0;i<NUMPIXELS;i++){
+    
+    pixels.setPixelColor(i,pixels.Color(0,255,0));
+    pixels.show();
+   
+    
+  }
+   
+   
+ }
+    
+void EnciendeLucesRojoPixels(){
+   
+  for(int i=0;i<NUMPIXELS;i++){
+    
+    pixels.setPixelColor(i,pixels.Color(255,0,0));
+    pixels.show();
+   
+    
+  }
+   
+   
+ }
+    
+void EnciendeLucesAmarilloPixels(){
+   
+  for(int i=0;i<NUMPIXELS;i++){
+    
+    pixels.setPixelColor(i,pixels.Color(255,255,0));
+    pixels.show();
+   
+    
+  }
+   
+ }
+
+
+
+void ApagaLucesPixel(){
+  
+  for(int i=0;i<NUMPIXELS;i++){
+    
+    pixels.setPixelColor(i,0);
+    pixels.show();
+   
+    
+  }
+  
+}
+
+
