@@ -186,19 +186,19 @@ void loop(){
     
    }  
   
- if(temperatura<38.0 && cm>=250)
-  {
-    
-    EnciendeLucesAmarilloPixels();
-    ApagaLucesPixel();
-    
-  }
-
-  if(temperatura<38.0 && cm>=250)
-  {
-   EnciendeLucesVerdePixels();
- 	 ApagaLucesPixel();
-  }
+// if(temperatura<38.0 && cm>=250)
+//  {
+//    
+//    EnciendeLucesAmarilloPixels();
+//    ApagaLucesPixel();
+//    
+//  }
+//
+//  if(temperatura<38.0 && cm>=250)
+//  {
+//   EnciendeLucesVerdePixels();
+// 	 ApagaLucesPixel();
+//  }
 
   
 //....................................
